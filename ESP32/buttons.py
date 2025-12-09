@@ -1,4 +1,3 @@
-# input_handler.py
 import time
 import drivers
 

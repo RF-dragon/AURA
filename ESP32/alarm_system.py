@@ -1,4 +1,3 @@
-# alarm_system.py
 import drivers
 
 class AlarmSystem:

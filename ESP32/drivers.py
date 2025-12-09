@@ -1,41 +1,43 @@
-# drivers.py - Hardware Abstraction Layer
+# drivers.py - Hardware Abstraction Layer for AURA
 import machine
+import math
 import time
 import neopixel
 import ssd1306
 from machine import I2S, Pin, I2C, PWM, RTC
-import ntptime 
+import ntptime
 
 # =========================================
 #            PIN CONFIGURATION
 # =========================================
 
-# --- I2C Bus (Shared by OLED and Light Sensors) ---
+# --- I2C Bus ---
 PIN_SDA = 21
 PIN_SCL = 22
 
 # --- Outputs ---
-PIN_LED_STRIP = 26   # NeoPixel Data Pin
-PIN_BUZZER = 25     # Passive Buzzer (PWM)
+PIN_LED_STRIP = 26   # NeoPixel Data
+PIN_BUZZER = 25      # Passive Buzzer
 
 # --- Inputs (Buttons) ---
-# All mapped to pins that support Internal Pull-ups (Active LOW)
-PIN_BTN_LEFT = 33   # Function: Scroll Up / Volume Up
-PIN_BTN_MID_L = 27  # Function: Scroll Down / Volume Down
-PIN_BTN_MID_R = 18  # Function: Select / Enter
-PIN_BTN_RIGHT = 5   # Function: Back / Cancel
+PIN_BTN_LEFT = 33    # Scroll Up
+PIN_BTN_MID_L = 27   # Scroll Down
+PIN_BTN_MID_R = 18   # Select
+PIN_BTN_RIGHT = 5    # Back
 
-# --- Inputs (PIR Motion Sensors) ---
+# --- Inputs (PIR Motion Sensor) ---
+# Only using Front Sensor now
 PIN_PIR_FRONT = 23
-PIN_PIR_RIGHT = 26
-PIN_PIR_LEFT = 19
 
-# --- Microphone (I2S Bus) ---
+# --- Microphones (Dual I2S) ---
+# Mic 1 (Left)
 PIN_MIC_SCK1 = 14
-PIN_MIC_SCK2 = 12    # Bit Clock
-PIN_MIC_WS1 = 15     # Word Select (Left/Right Clock)
-PIN_MIC_WS2 = 13
-PIN_MIC_SD1 = 32     # Serial Data In
+PIN_MIC_WS1 = 15
+PIN_MIC_SD1 = 32
+
+# Mic 2 (Right)
+PIN_MIC_SCK2 = 12
+PIN_MIC_WS2 = 13 
 PIN_MIC_SD2 = 4
 
 # =========================================
@@ -43,51 +45,39 @@ PIN_MIC_SD2 = 4
 # =========================================
 oled = None
 np = None
-i2s_mic = None
+i2s_mic1 = None
+i2s_mic2 = None
 buzzer_pwm = None
 pir_front = None
-pir_right = None
-pir_left = None
 btns = []
 i2c = None
 
-# BH1750 Addresses
-BH1750_ADDR_1 = 0x23 
-BH1750_ADDR_2 = 0x5C 
-
-# TIMEZONE OFFSET (Hours from UTC)
-# Change this to match your location (e.g., -5 for EST, -4 for EDT)
-TIMEZONE_OFFSET = -5 
+# Constants
+NUM_LEDS = 144       # Updated for 1m 144LEDs/m Strip
+BH1750_ADDR_1 = 0x23 # Right Sensor
+BH1750_ADDR_2 = 0x5C # Left Sensor
 
 def init_hardware():
-    global oled, np, i2s_mic, pir_front, pir_right, pir_left, btns, buzzer_pwm, i2c
+    global oled, np, i2s_mic1, i2s_mic2, pir_front, btns, buzzer_pwm, i2c
     
     print("Initializing Hardware...")
     
-    # 1. I2C Bus & OLED
+    # 1. I2C Bus
     try:
         i2c = I2C(0, scl=Pin(PIN_SCL), sda=Pin(PIN_SDA))
         # Wake up sensors
-        try: i2c.writeto(BH1750_ADDR_1, b'\x10')
+        try: i2c.writeto(BH1750_ADDR_1, b'\x10'); i2c.writeto(BH1750_ADDR_2, b'\x10')
         except: pass
-        try: i2c.writeto(BH1750_ADDR_2, b'\x10')
-        except: pass
-
         oled = ssd1306.SSD1306_I2C(128, 32, i2c)
-        oled.fill(0)
-        oled.text("AURA Booting...", 0, 0)
-        oled.show()
-    except Exception as e:
-        print("I2C Error:", e)
+        oled.fill(0); oled.text("AURA booting...", 0, 0); oled.show()
+    except Exception as e: print("I2C Error:", e)
 
-    # 2. NeoPixel
-    np = neopixel.NeoPixel(Pin(PIN_LED_STRIP), 8)
+    # 2. LED Strip
+    np = neopixel.NeoPixel(Pin(PIN_LED_STRIP), NUM_LEDS)
     led_strip_off()
 
-    # 3. Sensors
+    # 3. PIR Sensor
     pir_front = Pin(PIN_PIR_FRONT, Pin.IN)
-    pir_right = Pin(PIN_PIR_RIGHT, Pin.IN)
-    pir_left = Pin(PIN_PIR_LEFT, Pin.IN)
 
     # 4. Buttons
     btns = [
@@ -100,33 +90,32 @@ def init_hardware():
     # 5. Buzzer
     buzzer_pwm = PWM(Pin(PIN_BUZZER), freq=1000, duty=0)
 
-    # 6. Microphone
+    # 6. Microphones
     try:
-        i2s_mic = I2S(1, sck=Pin(PIN_MIC_SCK), ws=Pin(PIN_MIC_WS), sd=Pin(PIN_MIC_SD),
-                  mode=I2S.RX, bits=16, format=I2S.STD, rate=8000, ibuf=20000)
-    except Exception as e:
-        print("Mic Init Error:", e)
-        
+        config = {'bits': 16, 'format': I2S.MONO, 'rate': 16000, 'ibuf': 4096}
+        i2s_mic1 = I2S(0, sck=Pin(PIN_MIC_SCK1), ws=Pin(PIN_MIC_WS1), sd=Pin(PIN_MIC_SD1), mode=I2S.RX, **config)
+        i2s_mic2 = I2S(1, sck=Pin(PIN_MIC_SCK2), ws=Pin(PIN_MIC_WS2), sd=Pin(PIN_MIC_SD2), mode=I2S.RX, **config)
+    except Exception as e: print("Mic Init Error:", e)
+
     # 7. Time Sync
-    try:
-        ntptime.settime()
-        print("Time Synced")
-    except:
-        print("Time Sync Failed")
+    try: ntptime.settime()
+    except: pass
 
     print("Hardware Ready.")
 
-# ---- Sensor Functions -----
+# =========================================
+#          SENSOR FUNCTIONS
+# =========================================
+
 def read_pir_all():
+    """ Returns state of PIR (Simplified for single sensor) """
+    f = pir_front.value()
     return {
-        "front": pir_front.value(),
-        "right": pir_right.value(),
-        "left": pir_left.value(),
-        "any": pir_front.value() or pir_right.value() or pir_left.value()
+        "front": f,
+        "any": f # Logic now depends only on front sensor
     }
 
 def read_raw_button(index):
-    # Returns True if pressed (Active Low)
     return btns[index].value() == 0
 
 def read_light_sensors():
@@ -143,47 +132,40 @@ def read_light_sensors():
     return int(total_lux / count)
 
 def read_mic_volume():
-    samples = bytearray(512) 
-    try:
-        num_read = i2s_mic.readinto(samples)
+    """ Returns tuple (vol_mic1, vol_mic2) """
+    def get_rms(mic):
+        if not mic: return 0
+        buf = bytearray(1024)
+        mic.readinto(buf)
         total = 0
-        for i in range(0, num_read, 2):
-            sample = int.from_bytes(samples[i:i+2], 'little')
+        for i in range(0, len(buf), 2):
+            sample = int.from_bytes(buf[i:i+2], 'little')
             if sample > 32768: sample -= 65536
-            total += abs(sample)
-        return (total / (num_read/2)) * 5 
-    except:
-        return 0
+            total += sample * sample
+        return math.sqrt(total / (len(buf)//2))
+    
+    return get_rms(i2s_mic1), get_rms(i2s_mic2)
 
 def get_datetime():
-    """ Returns (year, month, day, hour, minute, second) adjusted for timezone """
-    t = time.localtime(time.time() + (TIMEZONE_OFFSET * 3600))
-    return t[0], t[1], t[2], t[3], t[4], t[5]
+    # Adjust -5 for EST (Modify if needed)
+    return time.localtime(time.time() - 18000)
 
-# ----- Actuator Functions -----
+# =========================================
+#          ACTUATOR FUNCTIONS
+# =========================================
+
 def led_strip_solid(color, brightness=255):
     factor = brightness / 255.0
-    r = int(color[0] * factor)
-    g = int(color[1] * factor)
-    b = int(color[2] * factor)
-    np.fill((r, g, b))
+    c = (int(color[0]*factor), int(color[1]*factor), int(color[2]*factor))
+    np.fill(c)
     np.write()
 
 def led_strip_rainbow():
     colors = [(255,0,0), (255,127,0), (255,255,0), (0,255,0), (0,0,255), (75,0,130), (148,0,211)]
-    for color in colors:
-        np.fill(color)
+    for c in colors:
+        np.fill(c)
         np.write()
-        time.sleep(0.05)
-    led_strip_off()
-
-def led_startup_animation():
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-    for color in colors:
-        for i in range(8):
-            np[i] = color
-            np.write()
-            time.sleep(0.05)
+        time.sleep(0.02) # Faster wipe for 144 LEDs
     led_strip_off()
 
 def led_strip_off():
@@ -192,48 +174,101 @@ def led_strip_off():
 
 def led_strip_flash(color):
     for _ in range(3):
-        np.fill(color)
-        np.write()
-        time.sleep(0.1)
-        np.fill((0,0,0))
-        np.write()
-        time.sleep(0.1)
+        np.fill(color); np.write(); time.sleep(0.1)
+        np.fill((0,0,0)); np.write(); time.sleep(0.1)
 
 def led_strip_flow_red(offset):
-    """ Creates a flowing red line effect for Alarm """
+    """ Animated red flow for Alarm - Optimized for 144 LEDs """
     np.fill((0,0,0))
-    # Light up 3 pixels in a row, shifting by offset
-    for i in range(3):
-        idx = (offset + i) % 8
+    # Light up larger chunks for visibility on high density strip
+    for i in range(15): # Flow width
+        idx = (offset + i) % NUM_LEDS
         np[idx] = (255, 0, 0)
     np.write()
 
-# ----- Audio Functions -----
-def play_tone(freq, duration_ms):
-    if buzzer_pwm:
-        buzzer_pwm.freq(freq)
-        buzzer_pwm.duty(512)
-        time.sleep_ms(duration_ms)
-        buzzer_pwm.duty(0)
+def led_startup_animation():
+    """ Wipes colors across the full 144 LED strip """
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+    for color in colors:
+        for i in range(0, NUM_LEDS, 2): # Skip every other pixel for speed
+            np[i] = color
+            if i+1 < NUM_LEDS: np[i+1] = color
+            np.write()
+            # No sleep here to make the 144 LED wipe fast enough
+    led_strip_off()
 
-def play_audio_cue(cue_name):
-    if cue_name == "startup":
-        play_tone(1000, 100)
-        play_tone(2000, 100)
-    elif cue_name == "mode_switch":
-        play_tone(1500, 100)
-    elif cue_name == "select":
-        play_tone(2000, 50)
-    elif cue_name == "back":
-        play_tone(500, 50)
-    elif cue_name == "alarm":
-        play_tone(2000, 200)
+# =========================================
+#          AUDIO FUNCTIONS
+# =========================================
+
+def play_tone(freq, duration_ms):
+    buzzer_pwm.freq(freq)
+    buzzer_pwm.duty(512)
+    time.sleep_ms(duration_ms)
+    buzzer_pwm.duty(0)
+
+def play_audio_cue(name):
+    if name == "startup": play_tone(1000, 100); play_tone(2000, 100)
+    elif name == "mode_switch": play_tone(1500, 100)
+    elif name == "select": play_tone(2000, 50)
+    elif name == "back": play_tone(500, 50)
+    elif name == "alarm": play_tone(2000, 200)
+    elif name == "status_report": play_tone(800, 100); time.sleep(0.1); play_tone(800, 100)
 
 def record_audio(duration=3):
-    rate = 8000 
+    rate = 8000
     buf = bytearray(rate * 2 * duration)
+    # Use Mic 1 for recording
     try:
-        i2s_mic.readinto(buf)
-    except:
-        pass
+        i2s_mic1.init(rate=rate)
+        i2s_mic1.readinto(buf)
+        i2s_mic1.init(rate=16000) # Restore
+    except: pass
     return buf
+
+# =========================================
+#          DISPLAY FUNCTIONS
+# =========================================
+
+def display_text(text):
+    """ Clears screen and shows a large single-line message. """
+    if oled:
+        oled.fill(0)
+        oled.text(text, 0, 10)
+        oled.show()
+
+def update_oled(mode, lux, noise):
+    """ Updates the Home Screen dashboard with live sensor data. """
+    if oled:
+        oled.fill(0)
+        oled.text(f"Mode: {mode}", 0, 0)
+        oled.text(f"Lux: {lux}", 0, 10)
+        oled.text(f"Vol: {int(noise)}", 0, 20)
+        oled.show()
+
+def draw_menu(items, selected_index, start_row):
+    """ 
+    Renders the scrolling menu list.
+    """
+    if not oled: return
+    
+    oled.fill(0)
+    for i in range(3): # Can fit 3 lines
+        item_idx = start_row + i
+        if item_idx < len(items):
+            prefix = ">" if item_idx == selected_index else " "
+            oled.text(f"{prefix} {items[item_idx]}", 0, i * 10)
+    oled.show()
+
+def draw_alarm_ui(hour, minute, setting_hour):
+    """ Renders the Alarm Set UI. """
+    if not oled: return
+    oled.fill(0)
+    oled.text("Set Alarm:", 0, 0)
+    
+    h_str = f">{hour:02d}<" if setting_hour else f"{hour:02d}"
+    m_str = f">{minute:02d}<" if not setting_hour else f"{minute:02d}"
+    
+    oled.text(f"{h_str} : {m_str}", 20, 12)
+    oled.text("UP/DN to chg", 0, 24)
+    oled.show()

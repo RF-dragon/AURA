@@ -51,11 +51,8 @@
 
 					<!-- Social Icons -->
 						<ul class="icons">
-							<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
-							<li><a href="#" class="icon fa-facebook"><span class="label">Facebook</span></a></li>
-							<li><a href="#" class="icon fa-github"><span class="label">Github</span></a></li>
-							<li><a href="#" class="icon fa-dribbble"><span class="label">Dribbble</span></a></li>
-							<li><a href="#" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://github.com/RF-dragon/AURA" class="icon fa-github"><span class="label">Github</span></a></li>
+							<li><a href="mailto://ry5972@columbia.edu" class="icon fa-envelope"><span class="label">Email</span></a></li>
 						</ul>
 
 				</div>
@@ -108,7 +105,7 @@
 
 							<h3 align="left">Technical Components</h3>
 
-							<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected each second, and we combine the data in a 10-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on approximately 300 samples in each mode. It is trained for 100 epochs and reaches nearly 100% accuracy on the validation dataset.</p>
+							<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected each second, and we combine the data in a 10-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on approximately 300 samples in each mode. It is trained for 100 epochs and reaches 100% accuracy on the validation dataset.</p>
 
 							<h3 align="left">Prototype</h3>
 							
@@ -141,12 +138,12 @@
 								<h2>Results</h2>
 							</header>
 
-							<p align="left">Remember to use figures to help illustrate results</p>
+							<p align="justify">We use cross entropy loss to compute the loss of the model output. After training for 100 epochs, we have a validation accuracy of exactly \( 100\% \) and a validation loss of \( 9.06 \times 10^{-8} \).</p>
 
 							<article class="item">
-								<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/pic06.jpg') }}" alt="" /></a>
+								<a class="image fit"><img src="{{ url_for('static', filename='images/loss.png') }}" alt="" /></a>
 								<header>
-									<h3>Caption</h3>
+									<h3>Loss and Accuracy</h3>
 								</header>
 							</article>
 
@@ -160,7 +157,8 @@
 								<h2>References</h2>
 							</header>
 
-							<p align="left">Blah blah blah</p>
+							<p align="justify">Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., ... & Chintala, S. (2019). Pytorch: An imperative style, high-performance deep learning library. Advances in neural information processing systems, 32.</p>
+							<p align="justify">Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention is all you need. Advances in neural information processing systems, 30.</p>
 
 						</div>
 					</section>
@@ -176,7 +174,7 @@
 							<div class="row">
 								<div class="3u 12u$(mobile)">
 									<article class="item">
-										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/ryan.jpg') }}" alt="" /></a>
+										<a href="mailto://ry5972@columbia.edu" class="image fit"><img src="{{ url_for('static', filename='images/ryan.jpg') }}" alt="" /></a>
 										<header>
 											<h3>Ryan Lo</h3>
 											<p>Architect, ESP32 Programming and UI design</p>
@@ -185,7 +183,7 @@
 								</div>
 								<div class="3u 12u$(mobile)">
 									<article class="item">
-										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/weilong.jpg') }}" alt="" /></a>
+										<a href="mailto://wg2459@columbia.edu" class="image fit"><img src="{{ url_for('static', filename='images/weilong.jpg') }}" alt="" /></a>
 										<header>
 											<h3>Weilong Guan</h3>
 											<p>Server implementation and ML model training</p>
@@ -194,7 +192,7 @@
 								</div>
 								<div class="3u 12u$(mobile)">
 									<article class="item">
-										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/david.JPEG') }}" alt="" /></a>
+										<a href="mailto://dr3382@columbia.edu" class="image fit"><img src="{{ url_for('static', filename='images/david.JPEG') }}" alt="" /></a>
 										<header>
 											<h3>David Reyes</h3>
 											<p>Hardware and CAD design, manufacturing</p>
@@ -203,7 +201,7 @@
 								</div>
 								<div class="3u$ 12u$(mobile)">
 									<article class="item">
-										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/yihang.jpg') }}" alt="" /></a>
+										<a href="mailto://ry5972@columbia.edu" class="image fit"><img src="{{ url_for('static', filename='images/yihang.jpg') }}" alt="" /></a>
 										<header>
 											<h3>Kevin Sun</h3>
 											<p>Video directory and software engineer</p>
@@ -256,6 +254,6 @@
 			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
 			<!--[if lte IE 8]><script src="{{ url_for('static', filename='js/ie/respond.min.js') }}"></script><![endif]-->
 			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
+			<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 	</body>
 </html>

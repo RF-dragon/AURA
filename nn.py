@@ -117,3 +117,8 @@ if __name__ == '__main__':
             plt.xlabel('Epoch')
             plt.legend()
             plt.savefig('loss.png')
+    
+    print(f'Final training loss: {train_losses[-1]}.')
+    print(f'Final validation loss: {val_losses[-1]}.')
+    print(f'Final training accuracy: {train_accs[-1]}.')
+    print(f'Final validation accuracy: {val_accs[-1]}.')
