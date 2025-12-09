@@ -1,0 +1,261 @@
+<!DOCTYPE HTML>
+<!--
+	Prologue by HTML5 UP
+	html5up.net | @n33co
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Columbia University EECS E4764 IoT Project Report #15</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!--[if lte IE 8]><script src="{{ url_for('static', filename='js/ie/html5shiv.js') }}"></script><![endif]-->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+		<!--[if lte IE 8]><link rel="stylesheet" href="{{ url_for('static', filename='css/ie8.css') }}" /><![endif]-->
+		<!--[if lte IE 9]><link rel="stylesheet" href="{{ url_for('static', filename='css/ie9.css') }}" /><![endif]-->
+	</head>
+	<body>
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="{{ url_for('static', filename='images/avatar.jpg') }}" alt="" /></span> -->
+							<h1 id="title">AURA: Adaptive Udser Room Assistant</h1>
+							<p>Columbia University <br>
+								EECS E4764 Fall'25 <br>
+								Artificial Intelligence of Things<br>
+								Team 15 Project Report
+							</p>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#top" id="top-link" class="skel-layers-ignoreHref"><span class="icon fa-home">Abstract</span></a></li>
+								<li><a href="#motivation" id="motivation-link" class="skel-layers-ignoreHref"><span class="icon fa-th">Motivation</span></a></li>
+								<li><a href="#system" id="system-link" class="skel-layers-ignoreHref"><span class="icon fa-th">System</span></a></li>
+								<li><a href="#results" id="results-link" class="skel-layers-ignoreHref"><span class="icon fa-th">Results</span></a></li>
+								<li><a href="#references" id="references-link" class="skel-layers-ignoreHref"><span class="icon fa-th">References</span></a></li>
+								<li><a href="#team" id="team-link" class="skel-layers-ignoreHref"><span class="icon fa-user">Our Team</span></a></li>
+								<li><a href="#contact" id="contact-link" class="skel-layers-ignoreHref"><span class="icon fa-envelope">Contact</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
+							<li><a href="#" class="icon fa-facebook"><span class="label">Facebook</span></a></li>
+							<li><a href="#" class="icon fa-github"><span class="label">Github</span></a></li>
+							<li><a href="#" class="icon fa-dribbble"><span class="label">Dribbble</span></a></li>
+							<li><a href="#" class="icon fa-envelope"><span class="label">Email</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+					<section id="top" class="one dark cover">
+						<div class="container">
+
+								<iframe width="560" height="315" src="https://www.youtube.com/embed/EHn5_YHP4e8" frameborder="0" allowfullscreen></iframe>
+
+								<h2 class="alt">AURA</h2>
+								<p>Adaptive User Room Assistant</p>
+								<p>AURA is an adaptive user room assistant that senses the environment and adjust lighting in real time. AURA uses environmental data to determine whether the user is being in one of four modes: STUDY, RELAX, SLEEP, or AWAY.</p>
+
+							<footer>
+								<a href="#motivation" class="button scrolly">Motivation</a>
+							</footer>
+
+						</div>
+					</section>
+
+				<!-- Portfolio -->
+					<section id="motivation" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Motivation</h2>
+							</header>
+
+							<p align="justify">We intend to create a device that will make our room more personalized by learning from our behavior patterns. The device should allow us to focus on the task that we are doing and reduce distractions. This is done by automatically predicting our current behavior mode, and assisting us by adjusting the environment to make us work or relax more comfortably.</p>
+
+						</div>
+					</section>
+
+					<section id="system" class="three">
+						<div class="container">
+
+							<header>
+								<h2>System</h2>
+							</header>
+
+							<h3 align="left">Architecture</h3>
+
+							<p align="justify">The system consists of two major part: the device and the server. The device collects the environmental data including brightness, sound and presence of motion, and send the data to the server. A machine learning model is trained based on the data collected. Whenever the device wants to predict the user's current behavior, it sends a request that contains the sensor data in a 10-second interval to the server, which uses the ML model to classify the user's activity and sends it back to the device. The device then make adjustments such as increasing lighting when the user is in STUDY mode or turning off the light when the user is in SLEEP mode.</p>
+
+							<h3 align="left">Technical Components</h3>
+
+							<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected each second, and we combine the data in a 10-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on approximately 300 samples in each mode. It is trained for 100 epochs and reaches nearly 100% accuracy on the validation dataset.</p>
+
+							<h3 align="left">Prototype</h3>
+							
+							<div style="display: flex; gap: 20px;">
+								<figure style="text-align: center; flex: 1;">
+									<img src="{{ url_for('static', filename='images/cad1.png') }}" alt="" style="width:100%;">
+									<figcaption>CAD Design (Perspective View)</figcaption>
+								</figure>
+
+								<figure style="text-align: center; flex: 1;">
+									<img src="{{ url_for('static', filename='images/cad2.png') }}" alt="" style="width:100%;">
+									<figcaption>CAD Design (Front View)</figcaption>
+								</figure>
+
+								<figure style="text-align: center; flex: 1;">
+									<img src="{{ url_for('static', filename='images/prototype.jpg') }}" alt="" style="width:100%;">
+									<figcaption>Device Prototype</figcaption>
+								</figure>
+							</div>
+
+
+						</div>
+					</section>
+
+
+					<section id="results" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Results</h2>
+							</header>
+
+							<p align="left">Remember to use figures to help illustrate results</p>
+
+							<article class="item">
+								<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/pic06.jpg') }}" alt="" /></a>
+								<header>
+									<h3>Caption</h3>
+								</header>
+							</article>
+
+						</div>
+					</section>
+
+					<section id="references" class="three">
+						<div class="container">
+
+							<header>
+								<h2>References</h2>
+							</header>
+
+							<p align="left">Blah blah blah</p>
+
+						</div>
+					</section>
+
+				<!-- About Me -->
+					<section id="team" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Our Team</h2>
+							</header>
+
+							<div class="row">
+								<div class="3u 12u$(mobile)">
+									<article class="item">
+										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/ryan.jpg') }}" alt="" /></a>
+										<header>
+											<h3>Ryan Lo</h3>
+											<p>Architect, ESP32 Programming and UI design</p>
+										</header>
+									</article>
+								</div>
+								<div class="3u 12u$(mobile)">
+									<article class="item">
+										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/weilong.jpg') }}" alt="" /></a>
+										<header>
+											<h3>Weilong Guan</h3>
+											<p>Server implementation and ML model training</p>
+										</header>
+									</article>
+								</div>
+								<div class="3u 12u$(mobile)">
+									<article class="item">
+										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/david.JPEG') }}" alt="" /></a>
+										<header>
+											<h3>David Reyes</h3>
+											<p>Hardware and CAD design, manufacturing</p>
+										</header>
+									</article>
+								</div>
+								<div class="3u$ 12u$(mobile)">
+									<article class="item">
+										<a href="#" class="image fit"><img src="{{ url_for('static', filename='images/yihang.jpg') }}" alt="" /></a>
+										<header>
+											<h3>Kevin Sun</h3>
+											<p>Video directory and software engineer</p>
+										</header>
+									</article>
+								</div>
+							</div>
+
+						</div>
+					</section>
+
+				<!-- Contact -->
+					<section id="contact" class="four">
+						<div class="container">
+
+							<header>
+								<h2>Contact</h2>
+							</header>
+
+							<p align="left">
+								<strong>Ryan Lo: </strong>ry5972@columbia.edu</br>
+								<strong>Weilong Guan: </strong>wg2459@columbia.edu</br>
+								<strong>David Reyes: </strong>dr3382@columbia.edu</br>
+								<strong>Kevin Sun: </strong>ys3978@columbia.edu</br>
+							</br>
+								<strong>Columbia University </strong><a href="http://www.ee.columbia.edu">Department of Electrical Engineering</a><br>
+								<strong>Instructor:</strong> <a href="https://www.engineering.columbia.edu/faculty-staff/directory/xiaofan-fred-jiang">Professsor Xiaofan (Fred) Jiang</a>
+							</p>
+
+						</div>
+					</section>
+
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; IoT Project | All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/jquery.scrolly.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/jquery.scrollzer.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/skel.min.js') }}"></script>
+			<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+			<!--[if lte IE 8]><script src="{{ url_for('static', filename='js/ie/respond.min.js') }}"></script><![endif]-->
+			<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+	</body>
+</html>
