@@ -5,19 +5,17 @@ class UserInterface:
     def __init__(self):
         # Menu Configuration
         self.MENU_ITEMS = [
-            "Auto Mode",     
-            "Study Mode",    
-            "Relax Mode",   
-            "Away Mode",     
-            "Sleep Mode",    
-            "Set Alarm",     
+            "Auto Mode",
+            "Study Mode",
+            "Relax Mode",
+            "Away Mode",
+            "Sleep Mode",
+            "Set Alarm",
             "Voice Cmd",
-            "Report Status"
         ]
-        
-        # Abbreviations for Home Screen (Fits 128px width)
+
+        # Mode abbreviations for compact display
         self.MODE_ABBREVIATIONS = {
-            "STARTUP": "INIT",
             "STUDY": "STY",
             "RELAX": "RLX",
             "SLEEP": "SLP",
@@ -26,23 +24,35 @@ class UserInterface:
             "MANUAL": "MAN"
         }
 
-        # State persistence: These variables keep track of where you were
-        self.idx = 0     # Currently highlighted item index
-        self.top = 0     # Index of the item at the top of the screen (scroll window)
+        # State persistence: current selection + scroll window
+        self.idx = 0      # currently highlighted item
+        self.top = 0      # top-of-window index (for 3 visible lines)
+
+        # Backwards-compat alias for main.py
+        self.menu_index = self.idx
+        self.menu_top_row = self.top
     
     def scroll_up(self):
-        """ Moves selection up, scrolls window if needed """
-        self.idx = max(0, self.idx - 1)
-        # If we move above the visible window, shift the window up
-        if self.idx < self.top: 
-            self.top = self.idx
+        """Moves selection up, wraps to bottom from top."""
+        if self.idx == 0:
+            self.idx = len(self.MENU_ITEMS) - 1
+        else:
+            self.idx -= 1
+        # Put selected item at top row
+        self.top = self.idx
+        self.menu_index = self.idx
+        self.menu_top_row = self.top
 
     def scroll_down(self):
-        """ Moves selection down, scrolls window if needed """
-        self.idx = min(len(self.MENU_ITEMS)-1, self.idx + 1)
-        # If we move below the visible window (3 lines), shift window down
-        if self.idx >= self.top + 3: 
-            self.top = self.idx - 2
+        """Moves selection down, wraps to top from bottom."""
+        if self.idx == len(self.MENU_ITEMS) - 1:
+            self.idx = 0
+        else:
+            self.idx += 1
+        # Put selected item at top row
+        self.top = self.idx
+        self.menu_index = self.idx
+        self.menu_top_row = self.top
 
     def get_selected_item(self):
         """ Returns the string of the currently selected item """
@@ -54,32 +64,37 @@ class UserInterface:
 
     def draw_home(self, mode, lux, noise):
         """ 
-        Renders the Main Dashboard.
-        Line 1: YYYY-MM-DD
-        Line 2: HH:MM:SS
-        Line 3: MODE L:xxx N:xxx
+        Renders the Main Dashboard (128x32, 3 lines):
+        L1: YYYY-MM-DD
+        L2: HH:MM:SS
+        L3: MODE  L:xxx  N:yyy
+        (mode_source is ignored for display)
         """
-        if not drivers.oled: return
-        
-        # Get Time from Drivers (Synced via NTP)
+        if not drivers.oled:
+            return
+
+        # Small helper to center a string horizontally on 128px width.
+        # SSD1306 default font is ~8px per character.
+        def center_x(text):
+            w = len(text) * 8
+            x = (128 - w) // 2
+            return 0 if x < 0 else x
+
         t = drivers.get_datetime()
         
-        # Format strings (YYYY-MM-DD)
         date_str = "{:04d}-{:02d}-{:02d}".format(t[0], t[1], t[2])
-        # Format Time (HH:MM:SS)
         time_str = "{:02d}:{:02d}:{:02d}".format(t[3], t[4], t[5])
         
-        # Create Status Line: "STY L:120 N:50"
-        short_mode = self.MODE_ABBREVIATIONS.get(mode, mode[:3])
-        status_str = f"{short_mode} L:{int(lux)} N:{int(noise)}"
-        
-        drivers.oled.fill(0) # Clear screen
-        
-        # Layout for 128x32 screen (approx 10px height per line)
-        drivers.oled.text(date_str, 20, 0)   # Top center
-        drivers.oled.text(time_str, 28, 10)  # Middle center
-        drivers.oled.text(status_str, 0, 22) # Bottom
-        
+        short_mode = self.MODE_ABBREVIATIONS.get(mode, (mode or "")[:3])
+        status_line = "{}  L:{}  N:{}".format(short_mode, int(lux), int(noise))
+
+        drivers.oled.fill(0)
+
+        # Vertically similar to before, but each line horizontally centered
+        drivers.oled.text(date_str,   center_x(date_str),   2)   # L1
+        drivers.oled.text(time_str,   center_x(time_str),  12)   # L2
+        drivers.oled.text(status_line,center_x(status_line),22)  # L3
+
         drivers.oled.show()
 
     def draw_menu(self):

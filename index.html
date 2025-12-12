@@ -1,0 +1,224 @@
+<!DOCTYPE HTML>
+
+<!--
+	Prologue by HTML5 UP
+	html5up.net | @n33co
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+
+<html>
+	<head>
+		<title>Columbia University EECS E4764 IoT Project Report #15</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+```
+	<!-- CSS -->
+	<link rel="stylesheet" href="static/css/main.css" />
+	<!--[if lte IE 8]><link rel="stylesheet" href="static/css/ie8.css" /><![endif]-->
+	<!--[if lte IE 9]><link rel="stylesheet" href="static/css/ie9.css" /><![endif]-->
+</head>
+<body>
+
+	<!-- Header -->
+	<div id="header">
+
+		<div class="top">
+
+			<!-- Logo -->
+			<div id="logo">
+				<h1 id="title">AURA: Adaptive User Room Assistant</h1>
+				<p>
+					Columbia University <br>
+					EECS E4764 Fall'25 <br>
+					Artificial Intelligence of Things<br>
+					Team 15 Project Report
+				</p>
+			</div>
+
+			<!-- Nav -->
+			<nav id="nav">
+				<ul>
+					<li><a href="#top" class="skel-layers-ignoreHref"><span class="icon fa-home">Abstract</span></a></li>
+					<li><a href="#motivation" class="skel-layers-ignoreHref"><span class="icon fa-th">Motivation</span></a></li>
+					<li><a href="#system" class="skel-layers-ignoreHref"><span class="icon fa-th">System</span></a></li>
+					<li><a href="#ml-results" class="skel-layers-ignoreHref"><span class="icon fa-th">ML Results</span></a></li>
+					<li><a href="#references" class="skel-layers-ignoreHref"><span class="icon fa-th">References</span></a></li>
+					<li><a href="#team" class="skel-layers-ignoreHref"><span class="icon fa-user">Our Team</span></a></li>
+					<li><a href="#contact" class="skel-layers-ignoreHref"><span class="icon fa-envelope">Contact</span></a></li>
+				</ul>
+			</nav>
+
+		</div>
+
+		<div class="bottom">
+			<ul class="icons">
+				<li><a href="https://github.com/RF-dragon/AURA" class="icon fa-github"><span class="label">Github</span></a></li>
+				<li><a href="mailto:ry5972@columbia.edu" class="icon fa-envelope"><span class="label">Email</span></a></li>
+			</ul>
+		</div>
+
+	</div>
+
+	<!-- Main -->
+	<div id="main">
+
+		<!-- Intro -->
+		<section id="top" class="one dark cover">
+			<div class="container">
+
+					<!-- If the video fails to load, consider hosting it with Flask or run web.py which is a server for the web page. -->
+					<iframe width="560" height="315" src="https://www.youtube.com/embed/EHn5_YHP4e8" frameborder="0" allowfullscreen></iframe>
+
+					<h2 class="alt">AURA</h2>
+					<p>Adaptive User Room Assistant</p>
+					<p>AURA is an adaptive user room assistant that senses the environment and adjust lighting in real time. AURA uses environmental data to determine whether the user is being in one of four modes: STUDY, RELAX, SLEEP, or AWAY.</p>
+
+				<footer>
+					<a href="#motivation" class="button scrolly">Motivation</a>
+				</footer>
+
+			</div>
+		</section>
+
+		<!-- Motivation -->
+		<section id="motivation" class="two">
+			<div class="container">
+				<header><h2>Motivation</h2></header>
+				<p align="justify">We intend to create a device that will make our room more personalized by learning from our behavior patterns. The device should allow us to focus on the task that we are doing and reduce distractions. This is done by automatically predicting our current behavior mode, and assisting us by adjusting the environment to make us work or relax more comfortably.</p>
+			</div>
+		</section>
+
+		<!-- System -->
+		<section id="system" class="three">
+			<div class="container">
+				<header><h2>System</h2></header>
+
+				<h3>Architecture</h3>
+				<p align="justify">The system consists of two major part: the device and the server. The device collects the environmental data including brightness, sound and presence of motion, and send the data to the server. A machine learning model is trained based on the data collected. Whenever the device wants to predict the user's current behavior, it sends a request that contains the sensor data in a 10-second interval to the server, which uses the ML model to classify the user's activity and sends it back to the device. The device then make adjustments such as increasing lighting when the user is in STUDY mode or turning off the light when the user is in SLEEP mode.</p>
+
+				<h3>Technical Components</h3>
+				<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected each second, and we combine the data in a 10-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on approximately 300 samples in each mode. It is trained for 100 epochs and reaches 100% accuracy on the validation dataset.</p>
+
+				<h3>Prototype</h3>
+				<div style="display: flex; gap: 20px;">
+					<figure style="flex:1; text-align:center;">
+						<img src="static/images/cad1.png" style="width:100%;" />
+						<figcaption>CAD Design (Perspective View)</figcaption>
+					</figure>
+					<figure style="flex:1; text-align:center;">
+						<img src="static/images/cad2.png" style="width:100%;" />
+						<figcaption>CAD Design (Front View)</figcaption>
+					</figure>
+					<figure style="flex:1; text-align:center;">
+						<img src="static/images/prototype.jpg" style="width:100%;" />
+						<figcaption>Device Prototype</figcaption>
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<!-- ML Results -->
+		<section id="ml-results" class="two">
+			<div class="container">
+				<header><h2>ML Results</h2></header>
+				<p align="justify">We use cross entropy loss to compute the loss of the model output. After training for 100 epochs, we have a validation accuracy of exactly \( 100\% \) and a validation loss of \( 9.06 \times 10^{-8} \).</p>
+				<img src="static/images/loss.png" style="width:50%; display:block; margin:0 auto;" />
+			</div>
+		</section>
+
+		<!-- References -->
+		<section id="references" class="three">
+			<div class="container">
+				<header><h2>References</h2></header>
+				<p>Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., ... & Chintala, S. (2019). Pytorch: An imperative style, high-performance deep learning library. Advances in neural information processing systems, 32.</p>
+				<p>Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention is all you need. Advances in neural information processing systems, 30.</p>
+			</div>
+		</section>
+
+		<!-- Team -->
+		<section id="team" class="two">
+			<div class="container">
+
+				<header>
+					<h2>Our Team</h2>
+				</header>
+
+				<div class="row">
+					<div class="3u 12u$(mobile)">
+						<article class="item">
+							<a href="mailto://ry5972@columbia.edu" class="image fit"><img src="static/images/ryan.jpg" alt="" /></a>
+							<header>
+								<h3>Ryan Lo</h3>
+								<p>Architect, ESP32 Programming and UI design</p>
+							</header>
+						</article>
+					</div>
+					<div class="3u 12u$(mobile)">
+						<article class="item">
+							<a href="mailto://wg2459@columbia.edu" class="image fit"><img src="static/images/weilong.jpg" alt="" /></a>
+							<header>
+								<h3>Weilong Guan</h3>
+								<p>Server implementation and ML model training</p>
+							</header>
+						</article>
+					</div>
+					<div class="3u 12u$(mobile)">
+						<article class="item">
+							<a href="mailto://dr3382@columbia.edu" class="image fit"><img src="static/images/david.JPEG" alt="" /></a>
+							<header>
+								<h3>David Reyes</h3>
+								<p>Hardware and CAD design, manufacturing</p>
+							</header>
+						</article>
+					</div>
+					<div class="3u$ 12u$(mobile)">
+						<article class="item">
+							<a href="mailto://ys3978@columbia.edu" class="image fit"><img src="static/images/yihang.jpg" alt="" /></a>
+							<header>
+								<h3>Kevin Sun</h3>
+								<p>Video directory and software engineer</p>
+							</header>
+						</article>
+					</div>
+				</div>
+
+			</div>
+		</section>
+
+		<!-- Contact -->
+		<section id="contact" class="four">
+			<div class="container">
+				<header><h2>Contact</h2></header>
+				<p>
+					Ryan Lo: ry5972@columbia.edu<br>
+					Weilong Guan: wg2459@columbia.edu<br>
+					David Reyes: dr3382@columbia.edu<br>
+					Kevin Sun: ys3978@columbia.edu
+				</p>
+			</div>
+		</section>
+
+	</div>
+
+	<!-- Footer -->
+	<div id="footer">
+		<ul class="copyright">
+			<li>&copy; IoT Project | All rights reserved.</li>
+			<li>Design: HTML5 UP</li>
+		</ul>
+	</div>
+
+	<!-- Scripts -->
+	<script src="static/js/jquery.min.js"></script>
+	<script src="static/js/jquery.scrolly.min.js"></script>
+	<script src="static/js/jquery.scrollzer.min.js"></script>
+	<script src="static/js/skel.min.js"></script>
+	<script src="static/js/util.js"></script>
+	<script src="static/js/main.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</body>
+```
+
+</html>

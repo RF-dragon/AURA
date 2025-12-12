@@ -1,0 +1,13 @@
+{
+  "networks": [
+    {
+      "ssid": "SpectrumSetup-3C",
+      "password": "botanykey401"
+    },
+    {
+      "ssid": "Columbia University",
+      "password": ""
+    },
+  ]
+}
+
