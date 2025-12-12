@@ -25,7 +25,7 @@ Needs to be in all caps.
 POE_API_KEY = "TRyXJBFHRo6v5VhfF7h2ZNwB7NxNXg_WRJAMEQzxFxc"
 whisper_model = whisper.load_model("tiny.en")
 
-ESP_IP = "192.168.1.34"   # <- You will replace later
+ESP_IP = "10.206.152.114"   # <- You will replace later
 PORT = 80
 
 # ------------------------------
