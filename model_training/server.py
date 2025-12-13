@@ -76,14 +76,29 @@ def train():
     print("Training model with", len(X), "samples...")
 
     model = MLPClassifier(
-        hidden_layer_sizes=(32, 16),
-        max_iter=500
+        hidden_layer_sizes=(128, 64, 32),
+        activation="relu",
+        solver="adam",
+        alpha=1e-4,
+        batch_size=32,
+        learning_rate="adaptive",
+        learning_rate_init=0.001,
+        max_iter=1000,
+        early_stopping=False,
+        validation_fraction=0.2,
+        n_iter_no_change=15,
+        random_state=42,
+        verbose=True
     )
 
     model.fit(X, y)
     save_model(model)
 
-    return jsonify({"message": "Model trained"})
+    return jsonify({
+        "message": "Model trained",
+        "epochs": model.n_iter_,
+        "final_loss": model.loss_
+    })
 
 # ============================
 #   /get-mode — inference
