@@ -1,28 +1,42 @@
-# alarm_system.py - Manages Alarm State & Logic
+"""
+alarm_system.py - Minimal alarm state/policy for AURA.
+
+Keeps alarm time + armed/ringing state. main.py polls check_trigger() and handles
+the actual alarm UI/beep pattern. stop() clears ringing and disarms (one-shot).
+"""
+
 import drivers
 
 class AlarmSystem:
     def __init__(self):
+        # Default alarm time (24-hour clock) shown on first boot.
         self.hour = 8
         self.minute = 0
-        self.enabled = False       # Is the alarm set?
-        self.ringing = False       # Is it currently making noise?
-        self.edit_mode_hour = True # UI State: True=Editing Hour, False=Editing Minute
+
+        # Armed/ringing latches. "ringing" stays True until stop() is called..
+        self.enabled = False
+        self.ringing = False
+
+        # UI focus: True => editing hour, False => editing minute.
+        self.edit_mode_hour = True
+
+    # -------------------------------
+    # Core alarm logic
+    # -------------------------------
 
     def check_trigger(self):
-        """ 
-        Checks if the current time matches the alarm time.
-        Returns True if alarm should start ringing.
+        """
+        Poll-based trigger check.
+
+        Returns True only when we *enter* the ringing state (edge trigger).
+        Seconds are ignored so the alarm is robust to loop timing.
         """
         if not self.enabled or self.ringing: 
             return False
             
-        # Get current time from drivers (NTP synced)
-        # time.localtime() returns (yr, mo, day, hr, min, sec, wkday, yearday)
+        # Expected tuple: (year, month, day, hour, minute, second, ...)
         t = drivers.get_datetime()
         
-        # Compare Hour (index 3) and Minute (index 4)
-        # We ignore seconds to trigger as soon as the minute flips
         if t[3] == self.hour and t[4] == self.minute:
             self.ringing = True
             return True
@@ -30,29 +44,33 @@ class AlarmSystem:
         return False
 
     def stop(self):
-        """ Stops the ringing and resets the alarm state """
+        """Dismiss alarm: clears ringing and disarms (one-shot), plus LED cleanup."""
         self.ringing = False
-        self.enabled = False # Alarm is one-shot (disables after ringing)
+        self.enabled = False
         drivers.led_strip_off()
 
+    # -------------------------------
+    # UI editing helpers
+    # -------------------------------
+
     def increment_time(self):
-        """ Increments the selected field by 1 """
+        """ Increment currently-selected field with wraparound. """
         if self.edit_mode_hour:
             self.hour = (self.hour + 1) % 24
         else:
             self.minute = (self.minute + 1) % 60
 
     def decrement_time(self):
-        """ Decrements the selected field by 1 """
+        """ Decrement currently-selected field with wraparound. """
         if self.edit_mode_hour:
             self.hour = (self.hour - 1) % 24
         else:
             self.minute = (self.minute - 1) % 60
             
     def toggle_edit_field(self):
-        """ Switches focus between Hour and Minute """
+        """ Switch UI focus between hour and minute fields. """
         self.edit_mode_hour = not self.edit_mode_hour
         
     def reset_edit_state(self):
-        """ Resets UI to start editing at Hour """
+        """ When entering the alarm page, start by editing the hour field. """
         self.edit_mode_hour = True

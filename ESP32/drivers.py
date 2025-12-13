@@ -1,4 +1,11 @@
-# drivers.py - Hardware Abstraction Layer for AURA
+""" 
+drivers.py - Hardware Abstraction Layer for AURA
+Purpose:
+- Centralize pin mapping + device initialization (OLED, NeoPixels, PIR, buttons, buzzer, I2S mic).
+- Provide small, stable APIs used across main.py / menu / features:
+  sensors (PIR, buttons, lux, audio RMS), time helpers, LED animations, OLED drawing, buzzer cues.
+"""
+
 import machine
 import math
 import time
@@ -44,8 +51,6 @@ PIN_MIC2_SD = 4
 # =========================================
 oled = None
 np = None
-# i2s_mic1 = None
-# i2s_mic2 = None
 i2s_mics = None
 buzzer_pwm = None
 pir_front = None
@@ -54,8 +59,8 @@ i2c = None
 
 # Constants
 NUM_LEDS = 40        
-BH1750_ADDR_1 = 0x23 # Right Sensor
-BH1750_ADDR_2 = 0x5C # Left Sensor
+BH1750_ADDR_1 = 0x23    # Right Sensor
+BH1750_ADDR_2 = 0x5C    # Left Sensor
 
 # Global brightness scaling (0.0–1.0)
 GLOBAL_BRIGHTNESS = 0.55
@@ -66,15 +71,22 @@ def init_hardware():
     
     print("Initializing Hardware...")
     
-    # 1. I2C Bus
+    # 1. I2C Bus + OLED + BH1750 wake (continuous H-resolution mode 0x10)
     try:
         i2c = I2C(0, scl=Pin(PIN_SCL), sda=Pin(PIN_SDA))
         # Wake up sensors
-        try: i2c.writeto(BH1750_ADDR_1, b'\x10'); i2c.writeto(BH1750_ADDR_2, b'\x10')
-        except: pass
+        try: 
+            i2c.writeto(BH1750_ADDR_1, b'\x10')
+            i2c.writeto(BH1750_ADDR_2, b'\x10')
+        except: 
+            pass
+
         oled = ssd1306.SSD1306_I2C(128, 32, i2c)
-        oled.fill(0); oled.text("AURA Booting...", 0, 0); oled.show()
-    except Exception as e: print("I2C Error:", e)
+        oled.fill(0)
+        oled.text("AURA Booting...", 0, 0)
+        oled.show()
+    except Exception as e: 
+        print("I2C Error:", e)
 
     # 2. LED Strip
     np = neopixel.NeoPixel(Pin(PIN_LED_STRIP), NUM_LEDS)
@@ -83,7 +95,7 @@ def init_hardware():
     # 3. PIR Sensor
     pir_front = Pin(PIN_PIR_FRONT, Pin.IN)
 
-    # 4. Buttons
+    # 4. Buttons (active-low with pull-ups)
     btns = [
         Pin(PIN_BTN_LEFT, Pin.IN, Pin.PULL_UP),
         Pin(PIN_BTN_MID_L, Pin.IN, Pin.PULL_UP),
@@ -91,29 +103,31 @@ def init_hardware():
         Pin(PIN_BTN_RIGHT, Pin.IN, Pin.PULL_UP)
     ]
     
-    # 5. Buzzer
+    # 5. Buzzer (PWM)
     buzzer_pwm = PWM(Pin(PIN_BUZZER), freq=1000, duty=0)
 
-    # 6. Microphones
+    # 6. Microphones (I2S). Single stream: interleaved stereo samples.
     try:
-        # Mic1 – main recording mic (I2S1) – using your proven-good config
         i2s_mics = I2S(
             0,
             sck=Pin(PIN_MIC1_SCK),
             ws=Pin(PIN_MIC1_WS),
-            sd=Pin(PIN_MIC1_SD),   # IMPORTANT: only SD1 connected here
+            sd=Pin(PIN_MIC1_SD),
             mode=I2S.RX,
-            bits=32,               # because stereo 16-bit + 16-bit
+            bits=32,
             format=I2S.STEREO,
             rate=16000,
             ibuf=4096
         )
 
-    except Exception as e: print("Mic Init Error:", e)
+    except Exception as e: 
+        print("Mic Init Error:", e)
 
-    # 7. Time Sync
-    try: ntptime.settime()
-    except: pass
+    # 7. Time Sync (best-effort; avoid crashing if no Wi-Fi yet)
+    try: 
+        ntptime.settime()
+    except: 
+        pass
 
     print("Hardware Ready.")
 
@@ -126,11 +140,11 @@ def read_pir_all():
     return pir_front.value()
 
 def read_raw_button(index):
+    """ Raw button read (active-low). """
     return btns[index].value() == 0
 
 def read_light_sensors():
-    """Returns: (lux_left, lux_right)"""
-
+    """ Return (lux_left, lux_right). BH1750 raw -> lux uses /1.2 scaling. """
     lux_left = None
     lux_right = None
 
@@ -152,8 +166,7 @@ def read_light_sensors():
 
 
 def read_stereo_volume():
-    """Returns RMS audio volume: (sound_left, sound_right)"""
-
+    """ Return RMS audio volume (left, right) from the interleaved I2S stream. """
     buf = bytearray(1024)
     n = i2s_mics.readinto(buf)
     if not n:
@@ -161,10 +174,10 @@ def read_stereo_volume():
 
     left_sq = 0
     right_sq = 0
-    samples = n // 4   # 2 bytes left + 2 bytes right
+    samples = n // 4
 
     for i in range(0, n, 4):
-        # 16-bit signed
+        # 16-bit signed samples (little-endian)
         left  = int.from_bytes(buf[i:i+2], 'little')
         right = int.from_bytes(buf[i+2:i+4], 'little')
 
@@ -178,12 +191,12 @@ def read_stereo_volume():
 
 
 def get_datetime():
-    # Returns (year, month, day, hour, minute, second)
-    # Adjust -18000 (5 hours) for EST 
+    # Returns (year, month, day, hour, minute, second, ...)
+    # Fixed offset applied for EST in this project build.
     return time.localtime(time.time() - 18000)
 
 def get_current_time():
-    """ Returns HH:MM string for main.py """
+    """ Return HH:MM string for UI. """
     t = get_datetime()
     return "{:02d}:{:02d}".format(t[3], t[4])
 
@@ -192,15 +205,11 @@ def get_current_time():
 # =========================================
 
 def _scale_color_tuple(color, extra_factor=1.0):
-    """
-    Applies global brightness + an extra factor (0.0–1.0).
-    Returns a scaled (r,g,b) tuple.
-    """
+    """ Apply GLOBAL_BRIGHTNESS and per-call extra scaling; clamp to [0,255]. """
     factor = GLOBAL_BRIGHTNESS * extra_factor
     r = int(color[0] * factor)
     g = int(color[1] * factor)
     b = int(color[2] * factor)
-    # Clamp to [0,255]
     r = 0 if r < 0 else (255 if r > 255 else r)
     g = 0 if g < 0 else (255 if g > 255 else g)
     b = 0 if b < 0 else (255 if b > 255 else b)
@@ -209,7 +218,7 @@ def _scale_color_tuple(color, extra_factor=1.0):
 def led_strip_solid(color, brightness=255):
     if np is None:
         return
-    extra = brightness / 255.0            # per-call scaling
+    extra = brightness / 255.0
     c = _scale_color_tuple(color, extra_factor=extra)
     np.fill(c)
     np.write()
@@ -250,7 +259,6 @@ def led_strip_flash(color):
         time.sleep(0.1)
 
 def led_strip_flow_red(offset):
-    """Animated red flow for Alarm."""
     if np is None:
         return
     np.fill((0, 0, 0))
@@ -341,7 +349,7 @@ def display_text(text):
         oled.show()
 
 def display_welcome_screen():
-    """Draw a simple welcome page on the 128x32 OLED."""
+    """Welcome page on the 128x32 OLED."""
     global oled
     if oled is None:
         return
@@ -353,7 +361,7 @@ def display_welcome_screen():
     oled.show()
 
 def update_oled(mode, lux, noise):
-    """ Dashboard update helper for main.py """
+    """Main dashboard update helper."""
     if oled:
         oled.fill(0)
         oled.text(f"Mode: {mode}", 0, 0)
@@ -362,7 +370,7 @@ def update_oled(mode, lux, noise):
         oled.show()
         
 def draw_menu(items, selected_index, start_row):
-    """ Draws the menu list """
+    """Render up to 3 menu entries starting at start_row."""
     if not oled: return
     oled.fill(0)
     for i in range(3): 
@@ -373,7 +381,7 @@ def draw_menu(items, selected_index, start_row):
     oled.show()
 
 def draw_alarm_ui(hour, minute, setting_hour):
-    """ Draws the Alarm Setting UI """
+    """Alarm-setting UI with hour/minute highlight."""
     if not oled: return
     oled.fill(0)
     oled.text("Set Alarm:", 0, 0)
@@ -394,12 +402,15 @@ def play_tone(freq, duration_ms):
     buzzer_pwm.duty(0)
 
 def play_audio_cue(name):
-    if name == "startup": play_tone(1000, 100); play_tone(2000, 100)
-    elif name == "mode_switch": play_tone(1500, 100)
-    elif name == "select": play_tone(2000, 50)
-    elif name == "back": play_tone(500, 50)
-    elif name == "alarm": play_tone(2000, 200)
-
-
-
-
+    # Named cues used by UI / mode transitions
+    if name == "startup": 
+        play_tone(1000, 100)
+        play_tone(2000, 100)
+    elif name == "mode_switch": 
+        play_tone(1500, 100)
+    elif name == "select": 
+        play_tone(2000, 50)
+    elif name == "back": 
+        play_tone(500, 50)
+    elif name == "alarm": 
+        play_tone(2000, 200)

@@ -1,9 +1,13 @@
-# menu_page.py - Handles OLED Graphics & UI Logic
+# menu_page.py - OLED UI rendering + menu state for AURA
+#
+# Notes:
+# - This module is intentionally “dumb UI”: it does not own the event loop.
+# - main.py (or the controller layer) updates idx/top via scroll_up/down and calls draw_*.
 import drivers
 
 class UserInterface:
     def __init__(self):
-        # Menu Configuration
+        # Menu items shown on the OLED (3 rows visible at once).
         self.MENU_ITEMS = [
             "Auto Mode",
             "Study Mode",
@@ -14,7 +18,7 @@ class UserInterface:
             "Voice Cmd",
         ]
 
-        # Mode abbreviations for compact display
+        # Compact labels to fit 128x32 layout cleanly.
         self.MODE_ABBREVIATIONS = {
             "STUDY": "STY",
             "RELAX": "RLX",
@@ -24,38 +28,38 @@ class UserInterface:
             "MANUAL": "MAN"
         }
 
-        # State persistence: current selection + scroll window
-        self.idx = 0      # currently highlighted item
-        self.top = 0      # top-of-window index (for 3 visible lines)
+        # Menu cursor state
+        self.idx = 0   # selected item index
+        self.top = 0   # top-of-window index (for 3 visible items)
 
-        # Backwards-compat alias for main.py
+        # Backwards-compat aliases used elsewhere in the codebase
         self.menu_index = self.idx
         self.menu_top_row = self.top
     
     def scroll_up(self):
-        """Moves selection up, wraps to bottom from top."""
+        """Move selection up (wrap at top). Window follows selection."""
         if self.idx == 0:
             self.idx = len(self.MENU_ITEMS) - 1
         else:
             self.idx -= 1
-        # Put selected item at top row
+        
         self.top = self.idx
         self.menu_index = self.idx
         self.menu_top_row = self.top
 
     def scroll_down(self):
-        """Moves selection down, wraps to top from bottom."""
+        """Move selection down (wrap at bottom). Window follows selection."""
         if self.idx == len(self.MENU_ITEMS) - 1:
             self.idx = 0
         else:
             self.idx += 1
-        # Put selected item at top row
+
         self.top = self.idx
         self.menu_index = self.idx
         self.menu_top_row = self.top
 
     def get_selected_item(self):
-        """ Returns the string of the currently selected item """
+        """Return the currently selected menu item label."""
         return self.MENU_ITEMS[self.idx]
 
     # =========================================
@@ -63,18 +67,16 @@ class UserInterface:
     # =========================================
 
     def draw_home(self, mode, lux, noise):
-        """ 
-        Renders the Main Dashboard (128x32, 3 lines):
-        L1: YYYY-MM-DD
-        L2: HH:MM:SS
-        L3: MODE  L:xxx  N:yyy
-        (mode_source is ignored for display)
+        """
+        Main dashboard (128x32, centered 3-line layout):
+        - YYYY-MM-DD
+        - HH:MM:SS
+        - MODE  L:<lux>  N:<noise>
         """
         if not drivers.oled:
             return
 
-        # Small helper to center a string horizontally on 128px width.
-        # SSD1306 default font is ~8px per character.
+        # Center helper: SSD1306 font is ~8 px per character.
         def center_x(text):
             w = len(text) * 8
             x = (128 - w) // 2
@@ -89,48 +91,37 @@ class UserInterface:
         status_line = "{}  L:{}  N:{}".format(short_mode, int(lux), int(noise))
 
         drivers.oled.fill(0)
-
-        # Vertically similar to before, but each line horizontally centered
-        drivers.oled.text(date_str,   center_x(date_str),   2)   # L1
-        drivers.oled.text(time_str,   center_x(time_str),  12)   # L2
-        drivers.oled.text(status_line,center_x(status_line),22)  # L3
+        drivers.oled.text(date_str,   center_x(date_str),   2)
+        drivers.oled.text(time_str,   center_x(time_str),  12)
+        drivers.oled.text(status_line,center_x(status_line),22)
 
         drivers.oled.show()
 
     def draw_menu(self):
-        """ 
-        Renders the Scrolling Menu List.
-        Shows 3 items based on self.top window.
-        """
-        if not drivers.oled: return
+        """Menu list view: renders 3 rows starting at self.top with '>' cursor."""
+        if not drivers.oled: 
+            return
         
         drivers.oled.fill(0)
         
-        # Loop through the 3 visible slots
         for i in range(3):
             item_idx = self.top + i
-            
-            # Ensure we don't try to draw items that don't exist
             if item_idx < len(self.MENU_ITEMS):
-                # Draw the cursor ">" if this is the selected item
                 prefix = ">" if item_idx == self.idx else " "
-                
-                # Draw text at y = 0, 10, 20
                 drivers.oled.text(f"{prefix} {self.MENU_ITEMS[item_idx]}", 0, i * 10)
                 
         drivers.oled.show()
 
     def draw_alarm_set(self, alarm_system):
-        """ 
-        Renders the Alarm Setting UI.
-        Shows: "Set Alarm:" and "HH : MM" with cursor highlighting.
+        """
+        Alarm setting UI:
+        - Highlights the editable field using > < around HH or MM.
         """
         if not drivers.oled: return
         
         drivers.oled.fill(0)
         drivers.oled.text("Set Alarm:", 0, 0)
         
-        # Determine which part is being edited (Hour or Minute) to add brackets > <
         if alarm_system.edit_mode_hour:
             h_str = f">{alarm_system.hour:02d}<"
             m_str = f"{alarm_system.minute:02d}"
@@ -138,11 +129,9 @@ class UserInterface:
             h_str = f"{alarm_system.hour:02d}"
             m_str = f">{alarm_system.minute:02d}<"
         
-        # Combine string: ">08< : 00"
         time_display = f"{h_str} : {m_str}"
         
         drivers.oled.text(time_display, 20, 15)
-        drivers.oled.text("UP/DN | SEL=Next", 0, 25) # Instruction text
+        drivers.oled.text("UP/DN | SEL=Next", 0, 25)
         
         drivers.oled.show()
-        

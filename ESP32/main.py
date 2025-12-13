@@ -15,24 +15,23 @@ from voice_ws import start_server
 # ----- Configuration -----
 AWAY_TIMEOUT_MS = 5 * 60 * 1000
 SAMPLE_INTERVAL_MS = 1750
-WINDOW_SIZE = 30          # Bigger window for ML stability
+WINDOW_SIZE = 30
 
-ML_PREDICTION_INTERVAL = 60   # Only classify every _ seconds
+ML_PREDICTION_INTERVAL = 60  # Seconds between classifications
 
+# Make sure to UPDATE WHENEVER WE CONNECT TO COLUMBIA'S WIFI
 SERVER_URL = "http://10.207.104.96:5000"
 
-# ----- Global State Variables -----
-current_mode = "STUDY"
-manual_override = False        # True if user manually sets a mode
+# --- Runtime State ---
+current_mode = "STUDY"        # default mode shown on boot
+manual_override = False       # True means UI/voice forced mode (no auto override)
 last_motion_time = time.ticks_ms()
 last_cloud_update = time.ticks_ms()
-
 last_ml_check = 0
 
-# --- Alarm Animation State ---
-led_flow_tick = 0 
+led_flow_tick = 0             # used by alarm LED "flow" animation
 
-# --- Instantiate Objects ---
+# --- Singletons ---
 input_mgr = ButtonHandler()
 alarm_sys = AlarmSystem()
 ui = UserInterface()
@@ -49,23 +48,30 @@ sensor_buffer = []
 # =========================================
 
 def get_auto_mode():
+    """
+    Decide the current mode when NOT in manual override.
+
+    Policy summary:
+    - Require a full window of samples before classifying.
+    - Rate-limit ML calls to avoid spamming the server / burning CPU.
+    - On any prediction error, keep the current_mode.
+    """
+
     global sensor_buffer, last_ml_check, current_mode, manual_override
 
-    # Do not override manual mode
     if manual_override:
         return current_mode
 
-    # Not enough data
     if len(sensor_buffer) < WINDOW_SIZE:
         return current_mode
 
-    # Don’t classify too often
     if time.ticks_diff(time.ticks_ms(), last_ml_check) < ML_PREDICTION_INTERVAL * 1000:
         return current_mode
 
     last_ml_check = time.ticks_ms()
 
     try:
+        # Send the entire window to server for prediction
         payload = {"data": sensor_buffer}
         res = urequests.post(f"{SERVER_URL}/get-mode", json=payload)
         response_json = res.json()
@@ -78,39 +84,17 @@ def get_auto_mode():
             print("Invalid ML mode, ignoring.")
             return current_mode
 
-        # send_auto_prediction(predicted)
-
+        # Reset window after a decision to keep windows independent
         sensor_buffer = []
-
         return predicted
 
     except Exception as e:
         print("ML prediction error:", e)
         return current_mode
 
-
-def send_auto_prediction(predicted_mode):
-    global sensor_buffer
-    try:
-        payload = {
-            "mode": predicted_mode.upper(),
-            "data": sensor_buffer[:]      # send full 30-sample window
-        }
-        res = urequests.post(f"{SERVER_URL}/status", json=payload)
-        print("Sent auto predicted window:", res.text)
-        res.close()
-        sensor_buffer = []
-
-    except Exception as e:
-        print("Failed auto prediction send:", e)
-
-
 def send_status_to_server(mode):
-    """
-    Sends the REAL buffered 10-sample training window to the server (/status)
-    """
+    """Best-effort periodic telemetry push (does not block core control flow)."""
     global sensor_buffer
-
     try:
         if len(sensor_buffer) < WINDOW_SIZE:
             print("Not enough samples yet to send training data.")
@@ -134,19 +118,19 @@ def send_status_to_server(mode):
 
 def apply_mode_effects(mode, lux, noise, animate=False):
     """
-    Controls LED strip based on the current Mode.
-    If animate=True, use center-out transition; otherwise just set solid.
+    Apply the *visual* response for the current mode.
+    main loop decides mode; this function only renders LED behavior.
     """
     # Determine base color from mode
     color = drivers.get_mode_color(mode)
 
     if mode == "ALERT":
-        # ALERT: quick flashing red
+        # ALERT is intentionally attention-grabbing
         drivers.led_strip_flash((255, 0, 0))
         return
-
+    
+    # Simple brightness heuristic: dim in dark rooms, brighter in lit rooms
     if mode == "SLEEP":
-        # Very dim
         bright = 40
         if animate:
             drivers.led_transition_center_out(color)
@@ -183,8 +167,8 @@ def apply_mode_effects(mode, lux, noise, animate=False):
 
 def handle_voice_text(payload):
     """
-    Called whenever a voice command arrives from Gradio -> Flask -> ESP32.
-    payload is expected to be a dict: {"mode": "<mode_label>", "transcription": "..."}.
+    Voice command entrypoint (from voice_ws callback).
+    Accepts dict: {"mode":"<label>", "transcription":"..."} or a raw string.
     """
     global current_mode, manual_override, sensor_buffer, current_state, last_ml_check
 
@@ -215,9 +199,8 @@ def handle_voice_text(payload):
         drivers.display_text("Auto Active")
         return
 
-    # === VALID MANUAL MODES ===
+    # --- VALID MANUAL MODES ---
     if mode_label in ("STUDY", "RELAX", "SLEEP", "AWAY"):
-
         manual_override = True
         current_mode = mode_label
         sensor_buffer = []
@@ -246,10 +229,9 @@ def handle_voice_text(payload):
 
 
 def execute_menu_action(index):
-    """ Handles Menu Selections. """
+    """Map menu selection index -> state changes + immediate UI feedback."""
     global current_mode, manual_override, current_state, sensor_buffer
     
-    # Get the string item from the UI class list
     item = ui.MENU_ITEMS[index]
     print("Selected:", item)
     
@@ -327,8 +309,7 @@ def main():
     print("AURA System Starting...")
     drivers.init_hardware()
     
-    
-    # --- Startup Animation ---
+    # Startup cues (purely cosmetic; does not affect control logic)
     drivers.display_text("AURA Init...")
     drivers.play_audio_cue("startup")
     drivers.led_startup_animation()
@@ -338,7 +319,9 @@ def main():
     welcome_tick = 0
 
     while True:
-        btn_idx = input_mgr.check_buttons()   # <-- FIXED
+        # --- 0. BUTTON EVENT (single event per loop if any) ---
+        btn_idx = input_mgr.check_buttons()
+
         if btn_idx != -1:
             # Any button: exit welcome, start AURA
             drivers.play_audio_cue("select")
@@ -346,7 +329,7 @@ def main():
     
         # Flowing rainbow around the ring
         drivers.led_rainbow_flow(welcome_tick)
-        welcome_tick = (welcome_tick + 4) & 255  # speed of rotation
+        welcome_tick = (welcome_tick + 4) & 255
         time.sleep(0.05)
     
     # Start background voice listener (always listening)
@@ -365,10 +348,6 @@ def main():
 
     # Auto mode decides initial logical mode
     current_mode = get_auto_mode()
-
-    # if not manual_override:
-    #     motion = drivers.read_pir_all()
-    #     send_status_to_server(current_mode)
 
     # Center-out transition into that mode color
     mode_color = drivers.get_mode_color(current_mode)
@@ -405,7 +384,6 @@ def main():
                 last_motion_time = time.ticks_ms()
 
             # --- 2. ALARM CHECK & RINGING HANDLER ---
-            # First, see if it's time to start ringing (one-shot trigger)
             if alarm_sys.check_trigger():
                 print("Alarm triggered")
 
@@ -415,10 +393,9 @@ def main():
                 drivers.led_strip_flow_red(led_flow_tick)
                 led_flow_tick += 1
 
-                # Fast, continuous beep (blocking but short)
                 drivers.play_tone(2000, 80)  # 80 ms beep
 
-                # ANY physical button press stops it:
+                # Any button press stops the alarm immediately
                 if (
                     btn_idx != -1
                     or drivers.read_raw_button(0)
@@ -431,7 +408,8 @@ def main():
                     drivers.play_audio_cue("back")
                     drivers.display_text("Alarm Off")
 
-                time.sleep(0.02)  # keep this loop tight for animation
+                # keep this loop tight for animation
+                time.sleep(0.02)
                 continue
 
             # --- 3. INPUT HANDLER (Button State Machine) ---
@@ -450,20 +428,20 @@ def main():
 
                 elif current_state == STATE_MENU:
                     if btn_idx == 0:
-                        ui.scroll_up()      # UP
+                        ui.scroll_up()
                     elif btn_idx == 1:
-                        ui.scroll_down()    # DOWN
+                        ui.scroll_down()
                     elif btn_idx == 3:
-                        current_state = STATE_HOME  # BACK
-                    elif btn_idx == 2:  # SELECT
+                        current_state = STATE_HOME
+                    elif btn_idx == 2:
                         execute_menu_action(ui.idx)
 
                 elif current_state == STATE_ALARM_SET:
                     if btn_idx == 0:
-                        alarm_sys.increment_time()  # UP
+                        alarm_sys.increment_time()
                     elif btn_idx == 1:
-                        alarm_sys.decrement_time()  # DOWN
-                    elif btn_idx == 2:  # SELECT
+                        alarm_sys.decrement_time()
+                    elif btn_idx == 2:
                         if alarm_sys.edit_mode_hour:
                             alarm_sys.toggle_edit_field()  # Move to minute
                         else:
@@ -472,12 +450,13 @@ def main():
                             time.sleep(1)
                             current_state = STATE_HOME
                             alarm_sys.reset_edit_state()
-                    elif btn_idx == 3:  # BACK
+                    elif btn_idx == 3:
                         current_state = STATE_MENU
 
                 time.sleep(0.2)  # extra debounce
 
-            # --- 4. THINK & ACT (Core Logic) ---
+            # --- 4. MODE DECISION + EFFECTS ---
+            # Only auto-classify when not manually overridden.
             new_mode = get_auto_mode()
 
             if new_mode != current_mode and not manual_override:
@@ -488,7 +467,7 @@ def main():
                 if not alarm_sys.ringing and current_state == STATE_HOME:
                     apply_mode_effects(current_mode, lux, noise, animate=False)
 
-            # --- OLED RENDERING ONLY ---
+            # --- 5. OLED RENDER ---
             if not alarm_sys.ringing:
                 if current_state == STATE_HOME:
                     ui.draw_home(current_mode, lux, noise)
@@ -497,10 +476,8 @@ def main():
                 elif current_state == STATE_ALARM_SET:
                     ui.draw_alarm_set(alarm_sys)
 
-            # --- 5. CLOUD SYNC (build ML window) ---
+            # --- 6. CLOUD SYNC + WINDOW BUILD ---
             if time.ticks_diff(time.ticks_ms(), last_cloud_update) > SAMPLE_INTERVAL_MS:
-
-                # 1. Append one sensor reading
                 sensor_buffer.append(sample)
 
                 # Trim BEFORE printing
@@ -510,7 +487,7 @@ def main():
                 print("Collected sample:", len(sensor_buffer), "/", WINDOW_SIZE)
 
 
-                # 3. If manual mode AND window full → send to server
+                # If manual mode AND window full → send to server
                 if manual_override and len(sensor_buffer) == WINDOW_SIZE:
                     send_status_to_server(current_mode)
 
@@ -520,15 +497,9 @@ def main():
             gc.collect()
 
         except Exception as e:
-            # Don't kill the whole app on a single error; just log it.
+            # Don't kill the whole app on a single error; log it instead.
             print("Main loop error:", e)
             time.sleep(0.2)
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
