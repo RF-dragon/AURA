@@ -42,7 +42,7 @@
 					<li><a href="#top" class="skel-layers-ignoreHref"><span class="icon fa-home">Abstract</span></a></li>
 					<li><a href="#motivation" class="skel-layers-ignoreHref"><span class="icon fa-th">Motivation</span></a></li>
 					<li><a href="#system" class="skel-layers-ignoreHref"><span class="icon fa-th">System</span></a></li>
-					<li><a href="#ml-results" class="skel-layers-ignoreHref"><span class="icon fa-th">ML Results</span></a></li>
+					<li><a href="#results" class="skel-layers-ignoreHref"><span class="icon fa-th">Results</span></a></li>
 					<li><a href="#references" class="skel-layers-ignoreHref"><span class="icon fa-th">References</span></a></li>
 					<li><a href="#team" class="skel-layers-ignoreHref"><span class="icon fa-user">Our Team</span></a></li>
 					<li><a href="#contact" class="skel-layers-ignoreHref"><span class="icon fa-envelope">Contact</span></a></li>
@@ -95,10 +95,10 @@
 				<header><h2>System</h2></header>
 
 				<h3>Architecture</h3>
-				<p align="justify">The system consists of two major part: the device and the server. The device collects the environmental data including brightness, sound and presence of motion, and send the data to the server. A machine learning model is trained based on the data collected. Whenever the device wants to predict the user's current behavior, it sends a request that contains the sensor data in a 10-second interval to the server, which uses the ML model to classify the user's activity and sends it back to the device. The device then make adjustments such as increasing lighting when the user is in STUDY mode or turning off the light when the user is in SLEEP mode.</p>
+				<p align="justify">The system consists of two major part: the device and the server. The device collects the environmental data including brightness, sound and presence of motion, and send the data to the server. A machine learning model is trained based on the data collected. Whenever the device wants to predict the user's current behavior, it sends a request that contains the sensor data in a 60-second interval to the server, which uses the ML model to classify the user's activity and sends it back to the device. The device then make adjustments such as increasing lighting when the user is in STUDY mode or turning off the light when the user is in SLEEP mode.</p>
 
 				<h3>Technical Components</h3>
-				<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected each second, and we combine the data in a 10-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on approximately 300 samples in each mode. It is trained for 100 epochs and reaches 100% accuracy on the validation dataset.</p>
+				<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected approximately every 2 second, and we combine the data in a 60-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on a dataset of 459 samples. It is trained for 500 epochs and reaches a loss of approximately 0.2.</p>
 
 				<h3>Prototype</h3>
 				<div style="display: flex; gap: 20px;">
@@ -118,12 +118,22 @@
 			</div>
 		</section>
 
-		<!-- ML Results -->
-		<section id="ml-results" class="two">
+		<!-- Results -->
+		<section id="results" class="two">
 			<div class="container">
-				<header><h2>ML Results</h2></header>
-				<p align="justify">We use cross entropy loss to compute the loss of the model output. After training for 100 epochs, we have a validation accuracy of exactly \( 100\% \) and a validation loss of \( 9.06 \times 10^{-8} \).</p>
-				<img src="static/images/loss.png" style="width:50%; display:block; margin:0 auto;" />
+				<header><h2>Results</h2></header>
+				<p align="justify">The following two images are two of the samples that we collected. Since the output range of each sensor is very different, we are using logarithmic scale in the image to clearly seperate different dimensions.</p>
+				<div style="display: flex; gap: 20px;">
+					<figure style="flex: 1; text-align: center;">
+						<img src="static/images/sample0_timeseries.png" style="width:100%;">
+						<figcaption>Sample 1</figcaption>
+					</figure>
+
+					<figure style="flex: 1; text-align: center;">
+						<img src="static/images/sample100_timeseries.png" style="width:100%;">
+						<figcaption>Sample 2</figcaption>
+					</figure>
+				</div>
 			</div>
 		</section>
 
