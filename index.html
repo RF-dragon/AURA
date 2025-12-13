@@ -98,7 +98,7 @@
 				<p align="justify">The system consists of two major part: the device and the server. The device collects the environmental data including brightness, sound and presence of motion, and send the data to the server. A machine learning model is trained based on the data collected. Whenever the device wants to predict the user's current behavior, it sends a request that contains the sensor data in a 60-second interval to the server, which uses the ML model to classify the user's activity and sends it back to the device. The device then make adjustments such as increasing lighting when the user is in STUDY mode or turning off the light when the user is in SLEEP mode.</p>
 
 				<h3>Technical Components</h3>
-				<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected approximately every 2 second, and we combine the data in a 60-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on a dataset of 459 samples. It is trained for 500 epochs and reaches a loss of approximately 0.2.</p>
+				<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected approximately every 2 second, and we combine the data in a 60-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on a dataset of 974 samples. It converge after 98 epochs and reaches a loss of approximately 0.2.</p>
 
 				<h3>Prototype</h3>
 				<div style="display: flex; gap: 20px;">
@@ -122,7 +122,7 @@
 		<section id="results" class="two">
 			<div class="container">
 				<header><h2>Results</h2></header>
-				<p align="justify">The following two images are two of the samples that we collected. Since the output range of each sensor is very different, we are using logarithmic scale in the image to clearly seperate different dimensions.</p>
+				<p align="justify">The following two images are two of the samples that we collected. There are 7 dimensions in each time step of a sample: 2 sounds recorded by the microphones, 2 brightnesses recoreded by the light sensors, a 0/1 value that represents whether motion is detected, the difference between the two microphones and the difference between the two light sensors. Since the output range of each sensor is very different, we are using logarithmic scale in the image to clearly seperate different dimensions.</p>
 				<div style="display: flex; gap: 20px;">
 					<figure style="flex: 1; text-align: center;">
 						<img src="static/images/sample0_timeseries.png" style="width:100%;">
@@ -132,6 +132,45 @@
 					<figure style="flex: 1; text-align: center;">
 						<img src="static/images/sample100_timeseries.png" style="width:100%;">
 						<figcaption>Sample 2</figcaption>
+					</figure>
+				</div>
+				<p align="justify">The data is evenly distributed among all modes to ensure that the model is not biased due to imbalanced data. For a better visualization of the dataset, we used histograms to plot the distributions of the data on all dimensions. We also draw a plot for visualizing the correlation between different dimensions, as shown below.</p>
+				<div style="display: flex; gap: 20px;">
+					<figure style="flex:1; text-align:center;">
+						<img src="static/images/label_distribution.png" style="width:100%;" />
+						<figcaption>Data Distribution</figcaption>
+					</figure>
+					<figure style="flex:1; text-align:center;">
+						<img src="static/images/histogram.png" style="width:100%;" />
+						<figcaption>Data Histogram</figcaption>
+					</figure>
+					<figure style="flex:1; text-align:center;">
+						<img src="static/images/correlation.png" style="width:100%;" />
+						<figcaption>Correlation Between Different Dimensions</figcaption>
+					</figure>
+				</div>
+				<p align="justify">The images below demonstrates the convergence process of the model and the parameters of the model.</p>
+				<div style="display: flex; gap: 20px;">
+					<figure style="flex: 1; text-align: center;">
+						<img src="static/images/training_loss.png" style="width:100%;">
+						<figcaption>Training Loss</figcaption>
+					</figure>
+
+					<figure style="flex: 1; text-align: center;">
+						<img src="static/images/weight_heatmap.png" style="width:100%;">
+						<figcaption>Weight Heatmap</figcaption>
+					</figure>
+				</div>
+				<p align="justify">Finally, the two images below show the accuracy of our model. The model achieves 84.91% accuracy, which is high enough for mode prediction in daily use. We may obtain better accuracy by collecting a much larger dataset and train with a more complicated model. The confusion matrix demonstates the detailed accuracy and error rate for each mode.</p>
+				<div style="display: flex; gap: 20px;">
+					<figure style="flex: 1; text-align: center;">
+						<img src="static/images/accuracy_bar.png" style="width:100%;">
+						<figcaption>Accuracy</figcaption>
+					</figure>
+
+					<figure style="flex: 1; text-align: center;">
+						<img src="static/images/confusion_matrix.png" style="width:100%;">
+						<figcaption>Confusion Matrix</figcaption>
 					</figure>
 				</div>
 			</div>
@@ -205,7 +244,7 @@
 					<h2>Contact</h2>
 				</header>
 
-				<p align="left">
+				<p>
 					<strong>Ryan Lo: </strong>ry5972@columbia.edu</br>
 					<strong>Weilong Guan: </strong>wg2459@columbia.edu</br>
 					<strong>David Reyes: </strong>dr3382@columbia.edu</br>
