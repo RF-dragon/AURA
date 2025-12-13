@@ -72,7 +72,7 @@
 
 					<h2 class="alt">AURA</h2>
 					<p>Adaptive User Room Assistant</p>
-					<p>AURA is an adaptive user room assistant that senses the environment and adjust lighting in real time. AURA uses environmental data to determine whether the user is being in one of four modes: STUDY, RELAX, SLEEP, or AWAY.</p>
+					<p>AURA is an adaptive user room assistant that senses the environment and adjusts lighting in real time. AURA uses environmental data to determine whether the user is being in one of four modes: STUDY, RELAX, SLEEP, or AWAY.</p>
 
 				<footer>
 					<a href="#motivation" class="button scrolly">Motivation</a>
@@ -98,7 +98,7 @@
 				<p align="justify">The system consists of two major part: the device and the server. The device collects the environmental data including brightness, sound and presence of motion, and sends the data to the server. A machine learning model is trained based on the data collected. Whenever the device wants to predict the user's current behavior, it sends a request that contains the sensor data in a 60-second interval to the server, which uses the ML model to classify the user's activity and sends it back to the device. The device then makes adjustments such as increasing lighting when the user is in STUDY mode or turning off the light when the user is in SLEEP mode.</p>
 
 				<h3>Technical Components</h3>
-				<p align="justify">We use 4 IMMP441 omnidirectional microphone for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected approximately every 2 second, and we combine the data in a 60-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on a dataset of 974 samples. It converges after 98 epochs and reaches a loss of approximately 0.2.</p>
+				<p align="justify">We use 4 IMMP441 omnidirectional microphones for detecting sound, 2 BH1750 light intensity illumination modules for detecting the brightness, and three SR501 PIR motion sensors to detect the presence of motion. The data is collected approximately every 2 second, and we combine the data in a 60-second interval to form one sample. The machine learning model consists of a Transformer encoder and three linear layers and is trained on a dataset of 974 samples. It converges after 98 epochs and reaches a loss of approximately 0.2.</p>
 
 				<h3>Prototype</h3>
 				<div style="display: flex; gap: 20px;">
@@ -183,6 +183,7 @@
 				<p>Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., ... & Chintala, S. (2019). Pytorch: An imperative style, high-performance deep learning library. Advances in neural information processing systems, 32.</p>
 				<p>Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention is all you need. Advances in neural information processing systems, 30.</p>
 				<p>Jiang, X. & Fan, Y. (2025). FA25 Lab5 Voice Assistant with LLM. Online available at https://courseworks2.columbia.edu/courses/225157/files/folder/labs/lab5.</p>
+				<p>Jiang, X. & Lin, Y. (2025). ssd1306.py. Online available at https://courseworks2.columbia.edu/courses/225157/files/folder/labs/lab3.</p>
 			</div>
 		</section>
 
